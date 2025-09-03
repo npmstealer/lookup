@@ -25,36 +25,13 @@ constexpr size_t NUM_FUNCOES = sizeof(funcoes) / sizeof(funcoes[0]);
 
 bool detecta_trampoline(const BYTE* code, SIZE_T size, std::string& tipo) {
     if (size < 6) return false;
-
-    if (code[0] == 0xE9) {
-        tipo = "[jmp rel32]";
-        return true;
-    }
-    if (code[0] == 0xEB) {
-        tipo = "[jmp rel8]";
-        return true;
-    }
-    if (code[0] == 0xE8) {
-        tipo = "[call rel32]";
-        return true;
-    }
-    if ((code[0] == 0x68 && code[5] == 0xC3) || (code[0] == 0x68 && code[5] == 0xCB)) {
-        tipo = "[push+ret]";
-        return true;
-    }
-    if (code[0] == 0x48 && code[1] == 0xB8 && code[10] == 0xFF && code[11] == 0xE0) {
-        tipo = "[mov rax+jmp rax]";
-        return true;
-    }
-    if (code[0] == 0xB8 && code[5] == 0xFF && code[6] == 0xE0) {
-        tipo = "[mov eax+jmp eax]";
-        return true;
-    }
-    if (code[0] == 0xFF && (code[1] & 0xF8) == 0x20) {
-        tipo = "[jmp indireto]";
-        return true;
-    }
-
+    if (code[0] == 0xE9) { tipo = "[jmp rel32]"; return true; }
+    if (code[0] == 0xEB) { tipo = "[jmp rel8]"; return true; }
+    if (code[0] == 0xE8) { tipo = "[call rel32]"; return true; }
+    if ((code[0] == 0x68 && code[5] == 0xC3) || (code[0] == 0x68 && code[5] == 0xCB)) { tipo = "[push+ret]"; return true; }
+    if (code[0] == 0x48 && code[1] == 0xB8 && code[10] == 0xFF && code[11] == 0xE0) { tipo = "[mov rax+jmp rax]"; return true; }
+    if (code[0] == 0xB8 && code[5] == 0xFF && code[6] == 0xE0) { tipo = "[mov eax+jmp eax]"; return true; }
+    if (code[0] == 0xFF && (code[1] & 0xF8) == 0x20) { tipo = "[jmp indireto]"; return true; }
     return false;
 }
 
@@ -259,35 +236,6 @@ bool injetorpriv(HANDLE hProcess, DWORD pid, std::vector<LPVOID>& suspeitos, boo
     return (!suspeitos.empty());
 }
 
-bool ademenistrador() {
-    BOOL isAdmin = FALSE;
-    HANDLE hToken = NULL;
-    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
-        TOKEN_ELEVATION elevation;
-        DWORD dwSize;
-        if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &dwSize)) {
-            isAdmin = elevation.TokenIsElevated;
-        }
-        CloseHandle(hToken);
-    }
-
-    if (!isAdmin) {
-        WCHAR szPath[MAX_PATH];
-        if (GetModuleFileNameW(NULL, szPath, MAX_PATH)) {
-            SHELLEXECUTEINFOW sei = { sizeof(sei) };
-            sei.lpVerb = L"runas";
-            sei.lpFile = szPath;
-            sei.hwnd = NULL;
-            sei.nShow = SW_SHOWNORMAL;
-            if (!ShellExecuteExW(&sei)) {
-                return false;
-            }
-            return false;
-        }
-    }
-    return true;
-}
-
 void superprivadoprocesso() {
     HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnap == INVALID_HANDLE_VALUE) {
@@ -376,9 +324,6 @@ void superprivadoprocesso() {
 }
 
 int wmain() {
-    if (!ademenistrador()) {
-        return 1;
-    }
     superprivadoprocesso();
     return 0;
 }
